@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@theme {
+  /* This automatically creates classes like bg-primary, text-primary, border-primary */
+  --color-primary: #1a365d;
+  --color-primary-hover: #2a4a7d;
+  
+  /* You can also define your Campus-specific colors */
+  --color-campus-accent: #f59e0b;
+}
