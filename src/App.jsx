@@ -1,26 +1,21 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Login from './components/Login';
-
+import AdminDashboard from './components/AdminDashboard';
 // Define your routes here
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Login />, 
+    element: <Login />,
   },
   {
     path: "/dashboard",
-    element: (
-      <div className="flex h-screen items-center justify-center bg-gray-100 text-3xl font-bold">
-        Welcome to the Student Dashboard
-      </div>
-    ),
-  },
+    element: <AdminDashboard />,
+  }
 ]);
 
 function App() {
   return (
-    /* This provider makes the router available to your whole app */
     <RouterProvider router={router} />
   );
 }
