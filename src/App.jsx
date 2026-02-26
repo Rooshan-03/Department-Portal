@@ -1,7 +1,8 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Login from './components/Login';
-import AdminDashboard from './components/AdminDashboard';
+import SideBar from './components/admin/SideBar';
+import TeacherDashboard from './components/teacher/TeacherDashboard';
 // Define your routes here
 const router = createBrowserRouter([
   {
@@ -9,8 +10,12 @@ const router = createBrowserRouter([
     element: <Login />,
   },
   {
-    path: "/dashboard",
-    element: <AdminDashboard />,
+    path: "/Admin-dashboard",
+    element: <SideBar />,
+  },
+  {
+    path: "/Teacher-dashboard",
+    element: <TeacherDashboard />,
   }
 ]);
 
