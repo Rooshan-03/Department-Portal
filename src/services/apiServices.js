@@ -71,7 +71,46 @@ export const register = async (userData, dispatch) => {
     }
 };
 
+export const verifyOTP = async (userData, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        const response = await axios.post(`${API_BASE_URL}user/verify_otp`, {
+            email: userData.email,
+            otp: userData.otp
+        }, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            }
+        })
+        dispatch(setSuccess('Otp Verified , Contact Admin to login'))
+    } catch (error) {
+        dispatch(setError(error.message))
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
 
+export const resendOTP = async (userData, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        const response = await axios.post(`${API_BASE_URL}user/resend_otp`, {
+            email: userData.email,
+        }, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            }
+        })
+        dispatch(setSuccess('Otp sent , Verify to continue'))
+
+        dispatch(setError(response.data))
+    } catch (error) {
+        dispatch(setError(error.message))
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
 
 export const getAllStudents = async (token, dispatch) => {
     try {
@@ -229,41 +268,3 @@ export const addNewCourse = async (userData, dispatch) => {
     }
 }
 
-export const verifyOTP = async (userData, dispatch) => {
-    try {
-        dispatch(setLoading(true))
-        const response = await axios.post(`${API_BASE_URL}user/verify_otp`, {
-            email: userData.email,
-            otp: userData.otp
-        }, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            }
-        })
-        dispatch(setError(response.data))
-    } catch (error) {
-        dispatch(setError(error.message))
-    } finally {
-        dispatch(setLoading(false))
-    }
-}
-
-export const resendOTP = async (userData, dispatch) => {
-    try {
-        dispatch(setLoading(true))
-        const response = await axios.post(`${API_BASE_URL}user/resend_otp`, {
-            email: userData.email,
-        }, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            }
-        })
-        dispatch(setError(response.data))
-    } catch (error) {
-        dispatch(setError(error.message))
-    } finally {
-        dispatch(setLoading(false))
-    }
-}
