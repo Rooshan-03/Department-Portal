@@ -1,10 +1,11 @@
 import axios from 'axios';
-import { appendCourse, appendNewStudent, appendNewTeacher, setAllCourses, setAllStudents, setAllTeachers, setAllUnAuthenticatedStudents, setAllUnAuthenticatedTeachers, setAdminData, setError, setLoading, setSuccess } from '../Redux/admin';
+import { appendCourse, appendNewStudent, appendNewTeacher, setAllCourses, setAllStudents, setAllTeachers, setAllUnAuthenticatedStudents, setAllUnAuthenticatedTeachers, setAdminData, setError, setLoading, setSuccess, setStudentsCount, setTeachersCount } from '../Redux/admin';
 import { setStudentData } from '../Redux/student';
 import { setTeacherData } from '../Redux/teacher';
 
 // const API_BASE_URL = 'https://smart-campus-backenduoss.vercel.app/'
-const API_BASE_URL = 'https://smart-campus-backend-orqg.onrender.com/'
+// const API_BASE_URL = 'https://smart-campus-backend-orqg.onrender.com/'
+const API_BASE_URL = 'http://153.92.208.33/smart-campus/'
 
 export const login = async (userData, dispatch, navigation) => {
     try {
@@ -116,7 +117,7 @@ export const getAllStudents = async (token, dispatch) => {
     try {
         dispatch(setLoading(true))
 
-        const response = await axios.get(`${API_BASE_URL}user/all_students`, {
+        const response = await axios.get(`${API_BASE_URL}user/all-students/`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -133,19 +134,54 @@ export const getAllStudents = async (token, dispatch) => {
         dispatch(setLoading(false))
     }
 }
-
-export const getAllTeachers = async (token, dispatch) => {
+export const getStudentsCount = async (token, dispatch) => {
     try {
         dispatch(setLoading(true))
-        const response = await axios.get(`${API_BASE_URL}user/all_teachers/`, {
+
+        const response = await axios.get(`${API_BASE_URL}user/count-students/`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             }
         })
+        dispatch(setStudentsCount(response.data))
+    } catch (e) {
+        const msg = e.response?.data?.message || 'Something Went Wrong';
+        dispatch(setError(msg))
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+export const getTeacherCount = async (token, dispatch) => {
+    try {
+        dispatch(setLoading(true))
 
-
+        const response = await axios.get(`${API_BASE_URL}user/count-teachers/`, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        dispatch(setTeachersCount(response.data))
+    } catch (e) {
+        const msg = e.response?.data?.message || 'Something Went Wrong';
+        dispatch(setError(msg))
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+export const getAllTeachers = async (token, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        const response = await axios.get(`${API_BASE_URL}user/all-teachers/`, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        })
         dispatch(setAllTeachers(response.data))
     } catch (e) {
         const msg = e.response?.data?.message || 'Something Went Wrong';
@@ -159,7 +195,7 @@ export const getAllTeachers = async (token, dispatch) => {
 export const getAllUnauthenticatedTeachers = async (token, dispatch) => {
     try {
         dispatch(setLoading(true))
-        const response = await axios.get(`${API_BASE_URL}user/all_unauthenticated_teachers`, {
+        const response = await axios.get(`${API_BASE_URL}user/all-unauthenticated-teachers/`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -180,7 +216,7 @@ export const getAllUnauthenticatedTeachers = async (token, dispatch) => {
 export const getAllUnauthenticatedStudents = async (token, dispatch) => {
     try {
         dispatch(setLoading(true))
-        const response = await axios.get(`${API_BASE_URL}user/all_unauthenticated_students`, {
+        const response = await axios.get(`${API_BASE_URL}user/all-unauthenticated-students/`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -199,7 +235,7 @@ export const getAllUnauthenticatedStudents = async (token, dispatch) => {
 export const approveUser = async (userData, dispatch) => {
     try {
         dispatch(setLoading(true))
-        const response = await axios.put(`${API_BASE_URL}user/approve_unauthenticated_user`, {
+        const response = await axios.put(`${API_BASE_URL}user/approve-unauthenticated-user`, {
             id: userData.id
         }, {
             headers: {
@@ -229,7 +265,7 @@ export const approveUser = async (userData, dispatch) => {
 export const getAllCourses = async (token, dispatch) => {
     try {
         dispatch(setLoading(true))
-        const response = await axios.get(`${API_BASE_URL}course`, {
+        const response = await axios.get(`${API_BASE_URL}course/`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -248,7 +284,7 @@ export const getAllCourses = async (token, dispatch) => {
 export const addNewCourse = async (userData, dispatch) => {
     try {
         dispatch(setLoading(true))
-        const response = await axios.post(`${API_BASE_URL}course`, {
+        const response = await axios.post(`${API_BASE_URL}course/`, {
             name: userData.name,
             teacher_id: userData.teacherId,
             course_code: userData.courseCode

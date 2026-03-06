@@ -6,12 +6,14 @@ const adminSlice = createSlice({
     initialState: {
         adminData: getSafeAdminData(),
         allStudents: [],
+        studentsCount: null,
         allTeachers: [],
+        teachersCount: null,
         unAuthenticatedTeachers: [],
         unAuthenticatedStudents: [],
         allCourses: [],
         error: null,
-        success:null,
+        success: null,
         loading: false
     },
 
@@ -31,6 +33,12 @@ const adminSlice = createSlice({
             state.allCourses = action.payload
             state.error = null;
             state.loading = false;
+        },
+        setStudentsCount: (state, action) => {
+            state.studentsCount = action.payload
+        },
+        setTeachersCount: (state, action) => {
+            state.teachersCount = action.payload
         },
         setAllUnAuthenticatedTeachers: (state, action) => {
             state.unAuthenticatedTeachers = action.payload
@@ -66,7 +74,7 @@ const adminSlice = createSlice({
             state.adminData = null;
             state.error = null;
             state.loading = false;
-            state.success=null;
+            state.success = null;
             localStorage.removeItem('adminData');
         },
         setError: (state, action) => {
@@ -81,5 +89,5 @@ const adminSlice = createSlice({
     }
 });
 
-export const { setAdminData, setLoading, setError,setSuccess, clearRecord, setAllTeachers, setAllStudents, setAllUnAuthenticatedTeachers, setAllUnAuthenticatedStudents, appendNewStudent, appendNewTeacher, setAllCourses, appendCourse } = adminSlice.actions;
+export const { setAdminData, setLoading, setError, setSuccess, clearRecord, setAllTeachers, setAllStudents, setAllUnAuthenticatedTeachers, setAllUnAuthenticatedStudents, appendNewStudent, appendNewTeacher, setAllCourses, appendCourse ,setTeachersCount,setStudentsCount} = adminSlice.actions;
 export default adminSlice.reducer;

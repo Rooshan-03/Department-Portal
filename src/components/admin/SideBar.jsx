@@ -7,6 +7,7 @@ import SettingsScreen from './Settings';
 import { useSelector } from 'react-redux';
 import NavBar from './NavBar';
 import Dashboard from './Dashboard';
+import AcceptRequest from './AcceptRequest';
 
 const SideBar = () => {
   const [activeScreen, setActiveScreen] = useState('Dashboard');
@@ -21,7 +22,7 @@ const SideBar = () => {
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, section: 'HOME' },
     { name: 'Faculty', icon: <UserSquare2 size={20} />, section: 'ACADEMIC' },
     { name: 'Students', icon: <Users size={20} />, section: 'ACADEMIC' },
-    { name: 'Schedules', icon: <CalendarDays size={20} />, section: 'ACADEMIC' },
+    { name: 'Join Requests', icon: <CalendarDays size={20} />, section: 'Authorization' },
     { name: 'Settings', icon: <Settings size={20} />, section: 'SYSTEM' },
   ];
 
@@ -92,7 +93,7 @@ const SideBar = () => {
               {activeScreen === 'Students' && <Students />}
               {activeScreen === 'Settings' && <SettingsScreen />}
               {activeScreen === 'Dashboard' && <Dashboard />}
-              {activeScreen === 'Schedules' && <div className="p-6 bg-white rounded-xl border">Schedules View.</div>}
+              {activeScreen === 'Join Requests' && <AcceptRequest />}
             </div>
           </div>
         </main>

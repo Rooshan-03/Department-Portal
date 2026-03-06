@@ -8,7 +8,7 @@ function Dashboard() {
   const Courses = useSelector((state) => state.admin.allCourses)
   const dispatch = useDispatch()
   const { loading } = useSelector((state) => state.admin);
-  const [teachers, setTeachers] = useState([])
+  const teachers = useSelector((state) => state.admin.allTeachers) || [];
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', course_code: '', teacher_id: '' });
@@ -16,11 +16,10 @@ function Dashboard() {
   useEffect(() => {
     getAllCourses(token, dispatch)
     const fetchTeachers = async () => {
-      const data = await getAllTeachers(token, dispatch);
-      setTeachers(data);
+      await getAllTeachers(token, dispatch);
     };
 
-    fetchTeachers(); console.log(teachers)
+    fetchTeachers();
   }, [token, dispatch])
 
   const filteredCourses = Courses?.filter((course) => {
@@ -141,8 +140,8 @@ function Dashboard() {
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard icon="📘" count={filteredCourses?.length || 0} label="COURSES FOUND" color="blue" />
-        <StatCard icon="👥" count="84" label="ASSIGNED FACULTY" color="green" />
+        <StatCard icon="📘" count={Courses?.length || 0} label="COURSES FOUND" color="blue" />
+        <StatCard icon="👥" count={teachers?.length || 0} label="ASSIGNED FACULTY" color="green" />
         <StatCard icon="📋" count="12" label="PENDING APPROVAL" color="orange" />
       </div>
 
