@@ -10,8 +10,7 @@ import {
     XCircle,
     Clock
 } from 'lucide-react';
-import { getAllUnauthenticatedStudents, getAllUnauthenticatedTeachers } from '../../services/apiServices';
-import { useDispatch, useSelector } from 'react-redux';
+import {  useSelector } from 'react-redux';
 
 // Skeleton Components
 const StatsCardSkeleton = () => (
@@ -70,16 +69,7 @@ const AcceptRequest = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    const dispatch = useDispatch();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            await getAllUnauthenticatedStudents(token, dispatch),
-            await getAllUnauthenticatedTeachers(token, dispatch)
-        };
-
-        fetchData();
-    }, [token, dispatch]);
 
     useEffect(() => {
         const formattedStudents = (students || []).map(student => ({

@@ -10,14 +10,17 @@ const API_BASE_URL = 'http://153.92.208.33/smart-campus/'
 export const login = async (userData, dispatch, navigation) => {
     try {
         dispatch(setLoading(true));
-        const response = await axios.post(`${API_BASE_URL}login/`, null, {
-            params: {
-                email: userData.email,
-                password: userData.password,
-                role: userData.role
-            },
-            headers: { 'accept': 'application/json' },
-        });
+        const response = await axios.post(`${API_BASE_URL}login/`, {
+            email: userData.email,
+            password: userData.password,
+            role: userData.role
+        }, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            }
+        }
+        );
         if (response.data) {
             const dataToStore = Array.isArray(response.data) ? response.data[0] : response.data;
             if (userData.role === 'teacher') {
@@ -225,8 +228,15 @@ export const getAllUnauthenticatedStudents = async (token, dispatch) => {
         })
         dispatch(setAllUnAuthenticatedStudents(response.data))
     } catch (e) {
-        const msg = e.response?.data?.message || 'Something Went Wrong';
-        dispatch(setError(msg))
+        if (e.response?.status === 404) {
+            console.log("✅ 404 handled: No students found. UI is fine."); // This proves your logic caught it
+            dispatch(setAllUnAuthenticatedStudents([]));
+            dispatch(setError(null));
+        } else {
+            // Case: Real error (Network down, Unauthorized, Server crash)
+            const msg = e.response?.data?.message || 'Something Went Wrong';
+            dispatch(setError(msg));
+        }
     } finally {
         dispatch(setLoading(false))
     }
