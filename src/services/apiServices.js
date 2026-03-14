@@ -78,7 +78,7 @@ export const register = async (userData, dispatch) => {
 export const verifyOTP = async (userData, dispatch) => {
     try {
         dispatch(setLoading(true))
-        const response = await axios.post(`${API_BASE_URL}user/verify_otp`, {
+        await axios.post(`${API_BASE_URL}user/verify-otp`, {
             email: userData.email,
             otp: userData.otp
         }, {
@@ -127,8 +127,6 @@ export const getAllStudents = async (token, dispatch) => {
                 'Authorization': `Bearer ${token}`
             }
         })
-
-
         dispatch(setAllStudents(response.data))
     } catch (e) {
         const msg = e.response?.data?.message || 'Something Went Wrong';
@@ -156,6 +154,7 @@ export const getStudentsCount = async (token, dispatch) => {
         dispatch(setLoading(false))
     }
 }
+
 export const getTeacherCount = async (token, dispatch) => {
     try {
         dispatch(setLoading(true))
@@ -245,15 +244,16 @@ export const getAllUnauthenticatedStudents = async (token, dispatch) => {
 export const approveUser = async (userData, dispatch) => {
     try {
         dispatch(setLoading(true))
-        const response = await axios.put(`${API_BASE_URL}user/approve-unauthenticated-user`, {
-            id: userData.id
-        }, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userData.token}`
+        const response = await axios.put(`${API_BASE_URL}user/approve-unauthenticated-user${userData.id}`,
+            {},
+            {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userData.token}`
+                }
             }
-        })
+        )
 
         if (response.data.role === 'teacher') {
             dispatch(appendNewTeacher(response.data))
