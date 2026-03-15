@@ -3,7 +3,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Login from './components/Login';
 import SideBar from './components/admin/SideBar';
 import TeacherDashboard from './components/teacher/TeacherDashboard';
-import StudentDashboard from './components/student/StudentDashboard';
+import StudentSidebar from './components/student/StudentSidebar';
+
 // Define your routes here
 const router = createBrowserRouter([
   {
@@ -18,9 +19,9 @@ const router = createBrowserRouter([
     path: "/Teacher-dashboard",
     element: <TeacherDashboard />,
   },
-    {
+  {
     path: "/Student-dashboard",
-    element: <StudentDashboard />,
+    element: <StudentSidebar />,
   }
 ]);
 
