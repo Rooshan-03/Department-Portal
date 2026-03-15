@@ -10,9 +10,10 @@ import {
     XCircle,
     Clock
 } from 'lucide-react';
-import {  useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { approveUser, declineUser } from '../../services/apiServices';
+import { setSuccess, setError, clearMessages } from '../../Redux/admin';
 
-// Skeleton Components
 const StatsCardSkeleton = () => (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 animate-pulse">
         <div className="flex items-center">
@@ -60,19 +61,36 @@ const AcceptRequest = () => {
     const token = useSelector((state) => state.admin.adminData?.access_token || '');
     const students = useSelector((state) => state.admin.unAuthenticatedStudents || []);
     const teachers = useSelector((state) => state.admin.unAuthenticatedTeachers || []);
-    const { loading } = useSelector((state) => state.admin);
+    const {  success, error } = useSelector((state) => state.admin);
 
     const [pendingUsers, setPendingUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [selectedUsers, setSelectedUsers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmAction, setConfirmAction] = useState(null);
+    const [confirmUser, setConfirmUser] = useState(null);
+    const [isBulkAction, setIsBulkAction] = useState(false);
+    const [processingAction, setProcessingAction] = useState(false);
     const itemsPerPage = 10;
 
-
+    const dispatch = useDispatch();
 
     useEffect(() => {
-        const formattedStudents = (students || []).map(student => ({
+        if (success || error) {
+            const timer = setTimeout(() => {
+                dispatch(clearMessages());
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [success, error, dispatch]);
+
+    useEffect(() => {
+        const studentData = Array.isArray(students) ? students : [];
+        const teacherData = Array.isArray(teachers) ? teachers : [];
+
+        const formattedStudents = studentData.map(student => ({
             id: student.id || `s-${Math.random()}`,
             name: student.name || 'Unknown',
             email: student.email || '',
@@ -80,7 +98,7 @@ const AcceptRequest = () => {
             originalData: student
         }));
 
-        const formattedTeachers = (teachers || []).map(teacher => ({
+        const formattedTeachers = teacherData.map(teacher => ({
             id: teacher.id || `t-${Math.random()}`,
             name: teacher.name || 'Unknown',
             email: teacher.email || '',
@@ -107,67 +125,100 @@ const AcceptRequest = () => {
     const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
 
     const handleApprove = async (userId) => {
+        const userToApprove = pendingUsers.find(u => u.id === userId);
+        if (!userToApprove) return;
+
+        setProcessingAction(true);
         try {
-            const userToApprove = pendingUsers.find(u => u.id === userId);
+            const success = await approveUser([userToApprove], token, dispatch);
 
-            if (!userToApprove) return;
-
-            if (userToApprove.type === 'student') {
-                console.log('Approving student:', userToApprove);
-            } else {
-                console.log('Approving teacher:', userToApprove);
+            if (success) {
+                setPendingUsers(prev => prev.filter(user => user.id !== userId));
+                setSelectedUsers(prev => prev.filter(id => id !== userId));
+                dispatch(setSuccess(`${userToApprove.name} has been approved successfully!`));
             }
-
-            setPendingUsers(prev => prev.filter(user => user.id !== userId));
-
-            alert(`${userToApprove.name} has been approved successfully!`);
         } catch (error) {
             console.error('Error approving user:', error);
-            alert('Failed to approve user. Please try again.');
+            dispatch(setError('Failed to approve user. Please try again.'));
+        } finally {
+            setProcessingAction(false);
         }
     };
 
     const handleDecline = async (userId) => {
+        const userToDecline = pendingUsers.find(u => u.id === userId);
+        if (!userToDecline) return;
+
+        setProcessingAction(true);
         try {
-            const userToDecline = pendingUsers.find(u => u.id === userId);
+            const success = await declineUser([userToDecline], token, dispatch);
 
-            if (!userToDecline) return;
-
-            if (userToDecline.type === 'student') {
-                console.log('Declining student:', userToDecline);
-            } else {
-                console.log('Declining teacher:', userToDecline);
+            if (success) {
+                setPendingUsers(prev => prev.filter(user => user.id !== userId));
+                setSelectedUsers(prev => prev.filter(id => id !== userId));
+                dispatch(setSuccess(`${userToDecline.name} has been declined.`));
             }
-
-            setPendingUsers(prev => prev.filter(user => user.id !== userId));
-            alert(`${userToDecline.name} has been declined.`);
         } catch (error) {
             console.error('Error declining user:', error);
-            alert('Failed to decline user. Please try again.');
+            dispatch(setError('Failed to decline user. Please try again.'));
+        } finally {
+            setProcessingAction(false);
         }
     };
 
     const handleBulkAction = async (action) => {
         if (selectedUsers.length === 0) return;
 
-        const confirmMessage = action === 'approve'
-            ? `Are you sure you want to approve ${selectedUsers.length} users?`
-            : `Are you sure you want to decline ${selectedUsers.length} users?`;
+        setProcessingAction(true);
+        if (action === 'approve') {
+            const usersToApprove = pendingUsers.filter(user => selectedUsers.includes(user.id));
+            const success = await approveUser(usersToApprove, token, dispatch);
 
-        if (!window.confirm(confirmMessage)) return;
-
-        try {
-            for (const userId of selectedUsers) {
-                if (action === 'approve') {
-                    await handleApprove(userId);
-                } else {
-                    await handleDecline(userId);
-                }
+            if (success) {
+                setPendingUsers(prev => prev.filter(user => !selectedUsers.includes(user.id)));
+                setSelectedUsers([]);
+                dispatch(setSuccess(`${selectedUsers.length} users approved successfully!`));
             }
-            setSelectedUsers([]);
-        } catch (error) {
-            console.error(`Error in bulk ${action}:`, error);
-            alert(`Failed to process bulk ${action}. Please try again.`);
+        } else {
+            const usersToDecline = pendingUsers.filter(user => selectedUsers.includes(user.id));
+            const success = await declineUser(usersToDecline, token, dispatch);
+
+            if (success) {
+                setPendingUsers(prev => prev.filter(user => !selectedUsers.includes(user.id)));
+                setSelectedUsers([]);
+                dispatch(setSuccess(`${selectedUsers.length} users declined successfully!`));
+            }
+        }
+        setProcessingAction(false);
+    };
+
+    const openConfirmModal = (action, user, isBulk = false) => {
+        setConfirmAction(action);
+        setConfirmUser(user);
+        setIsBulkAction(isBulk);
+        setShowConfirmModal(true);
+    };
+
+    const closeConfirmModal = () => {
+        setShowConfirmModal(false);
+        setConfirmAction(null);
+        setConfirmUser(null);
+        setIsBulkAction(false);
+    };
+
+    const handleConfirm = async () => {
+        if (!confirmAction) return;
+
+        closeConfirmModal();
+
+        if (isBulkAction) {
+            await handleBulkAction(confirmAction);
+        } else {
+            if (confirmAction === 'approve') {
+                await handleApprove(confirmUser.id);
+            } else {
+                await handleDecline(confirmUser.id);
+            }
         }
     };
 
@@ -187,21 +238,6 @@ const AcceptRequest = () => {
         }
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (error) {
-            return 'Invalid date';
-        }
-    };
-
     const getInitials = (name) => {
         if (!name) return '??';
         return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -212,8 +248,103 @@ const AcceptRequest = () => {
         teachers: pendingUsers.filter(u => u.type === 'teacher').length,
         students: pendingUsers.filter(u => u.type === 'student').length
     };
+const ConfirmationModal = () => {
+    if (!showConfirmModal) return null;
 
-    if (loading) {
+    const isApprove = confirmAction === 'approve';
+    const title = isBulkAction 
+        ? `${isApprove ? 'Approve' : 'Decline'} ${selectedUsers.length} Users`
+        : `${isApprove ? 'Approve' : 'Decline'} ${confirmUser?.name}`;
+    
+    const message = isBulkAction
+        ? `Are you sure you want to ${isApprove ? 'approve' : 'decline'} ${selectedUsers.length} selected ${selectedUsers.length === 1 ? 'user' : 'users'}?`
+        : `Are you sure you want to ${isApprove ? 'approve' : 'decline'} ${confirmUser?.name}?`;
+
+    return (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+
+            <div className="fixed inset-0 bg-black/50 bg-opacity-50 transition-opacity" aria-hidden="true"></div>
+
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+                <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                    <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                    <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                        <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <div className="sm:flex sm:items-start">
+                                <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full sm:mx-0 sm:h-10 sm:w-10 ${
+                                    isApprove ? 'bg-blue-100' : 'bg-red-100'
+                                }`}>
+                                    {isApprove ? (
+                                        <CheckCircle className="h-6 w-6 text-blue-600" />
+                                    ) : (
+                                        <XCircle className="h-6 w-6 text-red-600" />
+                                    )}
+                                </div>
+                                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                                        {title}
+                                    </h3>
+                                    <div className="mt-2">
+                                        <p className="text-sm text-gray-500">
+                                            {message}
+                                        </p>
+                                        {!isBulkAction && confirmUser && (
+                                            <div className="mt-3 flex items-center p-3 bg-gray-50 rounded-lg">
+                                                <div className={`h-8 w-8 rounded-full ${
+                                                    confirmUser.type === 'teacher' ? 'bg-blue-100' : 'bg-purple-100'
+                                                } flex items-center justify-center`}>
+                                                    <span className={`${
+                                                        confirmUser.type === 'teacher' ? 'text-blue-600' : 'text-purple-600'
+                                                    } font-medium text-xs`}>
+                                                        {getInitials(confirmUser.name)}
+                                                    </span>
+                                                </div>
+                                                <div className="ml-3">
+                                                    <p className="text-sm font-medium text-gray-900">{confirmUser.name}</p>
+                                                    <p className="text-xs text-gray-500">{confirmUser.email}</p>
+                                                </div>
+                                                <span className={`ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                    confirmUser.type === 'teacher'
+                                                        ? 'bg-blue-100 text-blue-800'
+                                                        : 'bg-purple-100 text-purple-800'
+                                                }`}>
+                                                    {confirmUser.type === 'teacher' ? 'Teacher' : 'Student'}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button
+                                type="button"
+                                onClick={handleConfirm}
+                                className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white sm:ml-3 sm:w-auto sm:text-sm cursor-pointer ${
+                                    isApprove
+                                        ? 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-500'
+                                        : 'bg-red-500 hover:bg-red-600 focus:ring-red-500'
+                                } focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors`}
+                            >
+                                {isApprove ? 'Approve' : 'Decline'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={closeConfirmModal}
+                                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm cursor-pointer transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+    if (processingAction) {
         return (
             <div className="min-h-screen bg-gray-50">
                 <div className="border-b border-gray-200">
@@ -297,6 +428,42 @@ const AcceptRequest = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <ConfirmationModal />
+
+            {success && (
+                <div className="fixed top-4 right-4 z-50 animate-slide-in">
+                    <div className="bg-green-50 border border-green-200 rounded-lg shadow-lg p-4 max-w-md">
+                        <div className="flex items-center">
+                            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                            <p className="ml-3 text-sm text-green-800 font-medium">{success}</p>
+                            <button
+                                onClick={() => dispatch(clearMessages())}
+                                className="ml-auto pl-3 cursor-pointer"
+                            >
+                                <XCircle className="w-4 h-4 text-green-600 hover:text-green-800" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {error && (
+                <div className="fixed top-4 right-4 z-50 animate-slide-in">
+                    <div className="bg-red-50 border border-red-200 rounded-lg shadow-lg p-4 max-w-md">
+                        <div className="flex items-center">
+                            <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                            <p className="ml-3 text-sm text-red-800 font-medium">{error}</p>
+                            <button
+                                onClick={() => dispatch(clearMessages())}
+                                className="ml-auto pl-3 cursor-pointer"
+                            >
+                                <XCircle className="w-4 h-4 text-red-600 hover:text-red-800" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="border-b border-gray-200">
                 <div className="px-4 sm:px-6 lg:px-8 py-6 mx-auto max-w-7xl">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -354,11 +521,7 @@ const AcceptRequest = () => {
                 </div>
             </div>
 
-
-
             <div className="px-4 sm:px-6 lg:px-8 py-6 mx-auto max-w-7xl">
-
-
                 <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-col sm:flex-row gap-4 flex-1">
                         <div className="relative flex-1 max-w-md">
@@ -391,15 +554,15 @@ const AcceptRequest = () => {
                                 {selectedUsers.length} selected
                             </span>
                             <button
-                                onClick={() => handleBulkAction('approve')}
-                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                onClick={() => openConfirmModal('approve', null, true)}
+                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer"
                             >
                                 <CheckCircle className="w-4 h-4 mr-2" />
                                 Approve All
                             </button>
                             <button
-                                onClick={() => handleBulkAction('decline')}
-                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                onClick={() => openConfirmModal('decline', null, true)}
+                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors cursor-pointer"
                             >
                                 <XCircle className="w-4 h-4 mr-2" />
                                 Decline All
@@ -407,8 +570,6 @@ const AcceptRequest = () => {
                         </div>
                     )}
                 </div>
-
-
 
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="overflow-x-auto">
@@ -485,20 +646,20 @@ const AcceptRequest = () => {
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex items-center justify-end space-x-2">
                                                     <button
-                                                        onClick={() => handleApprove(user.id)}
-                                                        className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                                        onClick={() => openConfirmModal('approve', user, false)}
+                                                        className="inline-flex items-center px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer"
                                                     >
                                                         <CheckCircle className="w-3.5 h-3.5 mr-1" />
                                                         Approve
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDecline(user.id)}
-                                                        className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                                        onClick={() => openConfirmModal('decline', user, false)}
+                                                        className="inline-flex items-center px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors cursor-pointer"
                                                     >
                                                         <XCircle className="w-3.5 h-3.5 mr-1" />
                                                         Decline
                                                     </button>
-                                                    <button className="p-1.5 text-gray-400 hover:text-gray-500 rounded-lg hover:bg-gray-100 transition-colors">
+                                                    <button className="p-1.5 text-gray-400 hover:text-gray-500 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
                                                         <MoreVertical className="w-4 h-4" />
                                                     </button>
                                                 </div>
@@ -516,10 +677,7 @@ const AcceptRequest = () => {
                         </table>
                     </div>
 
-
-
-
-                    {filteredUsers.length === 0 && !loading && (
+                    {filteredUsers.length === 0 && !processingAction && (
                         <div className="text-center py-12">
                             <Users className="mx-auto h-12 w-12 text-gray-400" />
                             <h3 className="mt-2 text-sm font-medium text-gray-900">No pending approvals</h3>
@@ -532,16 +690,13 @@ const AcceptRequest = () => {
                                         setSearchTerm('');
                                         setFilterType('all');
                                     }}
-                                    className="mt-4 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    className="mt-4 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
                                 >
                                     Clear filters
                                 </button>
                             )}
                         </div>
                     )}
-
-                    
-
 
                     {filteredUsers.length > 0 && (
                         <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
@@ -557,9 +712,9 @@ const AcceptRequest = () => {
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                         disabled={currentPage === 1}
-                                        className={`px-3 py-1 text-sm border rounded-lg transition-colors ${currentPage === 1
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
+                                        className={`px-3 py-1 text-sm border rounded-lg transition-colors cursor-pointer ${currentPage === 1
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
                                             }`}
                                     >
                                         Previous
@@ -568,9 +723,9 @@ const AcceptRequest = () => {
                                         <button
                                             key={index + 1}
                                             onClick={() => setCurrentPage(index + 1)}
-                                            className={`px-3 py-1 text-sm border rounded-lg transition-colors ${currentPage === index + 1
-                                                ? 'bg-blue-600 text-white border-blue-600'
-                                                : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
+                                            className={`px-3 py-1 text-sm border rounded-lg transition-colors cursor-pointer ${currentPage === index + 1
+                                                    ? 'bg-blue-600 text-white border-blue-600'
+                                                    : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
                                                 }`}
                                         >
                                             {index + 1}
@@ -579,9 +734,9 @@ const AcceptRequest = () => {
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                         disabled={currentPage === totalPages}
-                                        className={`px-3 py-1 text-sm border rounded-lg transition-colors ${currentPage === totalPages
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
+                                        className={`px-3 py-1 text-sm border rounded-lg transition-colors cursor-pointer ${currentPage === totalPages
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
                                             }`}
                                     >
                                         Next

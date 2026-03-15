@@ -77,6 +77,20 @@ const adminSlice = createSlice({
             state.success = null;
             localStorage.removeItem('adminData');
         },
+        clearMessages: (state) => {
+            state.error = null;
+            state.success = null
+        },
+        removeFromUnauthenticatedTeachers: (state, action) => {
+            state.unAuthenticatedTeachers = state.unAuthenticatedTeachers.filter(
+                teacher => teacher.id !== action.payload
+            );
+        },
+        removeFromUnauthenticatedStudents: (state, action) => {
+            state.unAuthenticatedStudents = state.unAuthenticatedStudents.filter(
+                student => student.id !== action.payload
+            );
+        },
         setError: (state, action) => {
             state.error = action.payload;
         },
@@ -89,5 +103,5 @@ const adminSlice = createSlice({
     }
 });
 
-export const { setAdminData, setLoading, setError, setSuccess, clearRecord, setAllTeachers, setAllStudents, setAllUnAuthenticatedTeachers, setAllUnAuthenticatedStudents, appendNewStudent, appendNewTeacher, setAllCourses, appendCourse ,setTeachersCount,setStudentsCount} = adminSlice.actions;
+export const { setAdminData, setLoading, setError, setSuccess, clearRecord, setAllTeachers, setAllStudents, removeFromUnauthenticatedStudents, removeFromUnauthenticatedTeachers, setAllUnAuthenticatedTeachers, setAllUnAuthenticatedStudents, appendNewStudent, appendNewTeacher, setAllCourses, appendCourse, setTeachersCount, setStudentsCount,clearMessages } = adminSlice.actions;
 export default adminSlice.reducer;

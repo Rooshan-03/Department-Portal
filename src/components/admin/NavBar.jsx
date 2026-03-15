@@ -5,9 +5,16 @@ import { getAllUnauthenticatedStudents, getAllUnauthenticatedTeachers } from '..
 
 const NavBar = ({ activeScreen, setActiveScreen }) => {
   const [showNotifications, setShowNotifications] = useState(false);
-  const timeoutRef = useRef(null); // To prevent flickering when moving mouse to the card
+  const timeoutRef = useRef(null); 
 
-  const { unAuthenticatedTeachers, unAuthenticatedStudents } = useSelector((state) => state.admin);
+const unAuthenticatedTeachers = useSelector((state) => 
+  Array.isArray(state.admin?.unAuthenticatedTeachers) ? state.admin.unAuthenticatedTeachers : []
+);
+
+const unAuthenticatedStudents = useSelector((state) => 
+  Array.isArray(state.admin?.unAuthenticatedStudents) ? state.admin.unAuthenticatedStudents : []
+);
+  
   const token = useSelector((state) => state.admin.adminData?.access_token || '');
   const dispatch = useDispatch();
 
@@ -20,7 +27,6 @@ const NavBar = ({ activeScreen, setActiveScreen }) => {
     fetchData();
   }, [token, dispatch]);
 
-  // Hover Handlers with a small delay to prevent accidental closing
   const handleMouseEnter = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setShowNotifications(true);
@@ -29,17 +35,17 @@ const NavBar = ({ activeScreen, setActiveScreen }) => {
   const handleMouseLeave = () => {
     timeoutRef.current = setTimeout(() => {
       setShowNotifications(false);
-    }, 200); // 200ms grace period
+    }, 200); 
   };
 
-  const totalCount = (unAuthenticatedStudents?.length || 0) + (unAuthenticatedTeachers?.length || 0);
+  const totalCount = unAuthenticatedStudents.length + unAuthenticatedTeachers.length;
 
   return (
     <nav className="bg-white text-slate-800 border-b border-gray-200 relative z-50">
       <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          {/* Breadcrumbs */}
+          
           <div className="flex items-center space-x-2 text-sm">
             {activeScreen !== 'Dashboard' && (
               <>
@@ -50,9 +56,8 @@ const NavBar = ({ activeScreen, setActiveScreen }) => {
             <span className="text-[#1a355b] font-bold">{activeScreen === 'Dashboard' ? 'Home' : activeScreen}</span>
           </div>
 
-          {/* Notification Area */}
           <div
-            className="relative py-4" // Added padding to bridge the gap for hover
+            className="relative py-4" 
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
@@ -66,7 +71,6 @@ const NavBar = ({ activeScreen, setActiveScreen }) => {
               )}
             </button>
 
-            {/* THE NOTIFICATION CARD */}
             {showNotifications && (
               <div className="absolute right-0 mt-1 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-slate-50/50">
@@ -76,7 +80,6 @@ const NavBar = ({ activeScreen, setActiveScreen }) => {
                   </span>
                 </div>
 
-                {/* SCROLLABLE SECTION */}
                 <div className="max-h-72 overflow-y-auto scrollbar-thin">
                   {totalCount === 0 ? (
                     <div className="p-10 text-center">
@@ -84,11 +87,10 @@ const NavBar = ({ activeScreen, setActiveScreen }) => {
                     </div>
                   ) : (
                     <>
-
-                      {unAuthenticatedTeachers?.map((t, index) => (
+                      {unAuthenticatedTeachers.map((teacher, index) => (
                         <NotificationRow
-                          key={`teacher-${t._id || t.id || index}`}
-                          name={t.name}
+                          key={`teacher-${teacher._id || teacher.id || index}`}
+                          name={teacher.name}
                           role="Teacher"
                           onClick={() => {
                             setActiveScreen('Join Requests');
@@ -97,10 +99,10 @@ const NavBar = ({ activeScreen, setActiveScreen }) => {
                         />
                       ))}
 
-                      {unAuthenticatedStudents?.map((s, index) => (
+                      {unAuthenticatedStudents.map((student, index) => (
                         <NotificationRow
-                          key={`student-${s._id || s.id || index}`}
-                          name={s.name}
+                          key={`student-${student._id || student.id || index}`}
+                          name={student.name}
                           role="Student"
                           onClick={() => {
                             setActiveScreen('Join Requests');

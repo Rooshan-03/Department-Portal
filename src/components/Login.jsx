@@ -94,6 +94,11 @@ function Login() {
     const handleVerifyOTP = async (e) => {
         e.preventDefault();
         await verifyOTP({ email: registerData.email, otp }, dispatch);
+        
+        setStep('auth');     
+        setIsFlipped(false); 
+        setOtp('');          
+    
     };
 
     const handleResend = async () => {

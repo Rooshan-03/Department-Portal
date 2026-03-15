@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { appendCourse, appendNewStudent, appendNewTeacher, setAllCourses, setAllStudents, setAllTeachers, setAllUnAuthenticatedStudents, setAllUnAuthenticatedTeachers, setAdminData, setError, setLoading, setSuccess, setStudentsCount, setTeachersCount } from '../Redux/admin';
+import { appendCourse, appendNewStudent, appendNewTeacher, setAllCourses, setAllStudents, setAllTeachers, setAllUnAuthenticatedStudents, setAllUnAuthenticatedTeachers, setAdminData, setError, setLoading, setSuccess, setStudentsCount, setTeachersCount, removeFromUnauthenticatedTeachers, removeFromUnauthenticatedStudents } from '../Redux/admin';
 import { setStudentData } from '../Redux/student';
 import { setTeacherData } from '../Redux/teacher';
 
@@ -10,7 +10,7 @@ const API_BASE_URL = 'http://153.92.208.33/smart-campus/'
 export const login = async (userData, dispatch, navigation) => {
     try {
         dispatch(setLoading(true));
-        const response = await axios.post(`${API_BASE_URL}login/`, {
+        const response = await axios.post(`${API_BASE_URL}auth/login/`, {
             email: userData.email,
             password: userData.password,
             role: userData.role
@@ -53,7 +53,7 @@ export const register = async (userData, dispatch) => {
     try {
 
         dispatch(setLoading(true));
-        const response = await axios.post(`${API_BASE_URL}user/`, {
+        const response = await axios.post(`${API_BASE_URL}auth/create/`, {
             name: userData.name,
             email: userData.email,
             password: userData.password,
@@ -78,7 +78,7 @@ export const register = async (userData, dispatch) => {
 export const verifyOTP = async (userData, dispatch) => {
     try {
         dispatch(setLoading(true))
-        await axios.post(`${API_BASE_URL}user/verify-otp`, {
+        await axios.post(`${API_BASE_URL}auth/verify-otp/`, {
             email: userData.email,
             otp: userData.otp
         }, {
@@ -98,7 +98,7 @@ export const verifyOTP = async (userData, dispatch) => {
 export const resendOTP = async (userData, dispatch) => {
     try {
         dispatch(setLoading(true))
-        const response = await axios.post(`${API_BASE_URL}user/resend_otp`, {
+        const response = await axios.post(`${API_BASE_URL}auth/resend-otp`, {
             email: userData.email,
         }, {
             headers: {
@@ -227,50 +227,88 @@ export const getAllUnauthenticatedStudents = async (token, dispatch) => {
         })
         dispatch(setAllUnAuthenticatedStudents(response.data))
     } catch (e) {
-        if (e.response?.status === 404) {
-            console.log("✅ 404 handled: No students found. UI is fine."); // This proves your logic caught it
-            dispatch(setAllUnAuthenticatedStudents([]));
-            dispatch(setError(null));
-        } else {
-            // Case: Real error (Network down, Unauthorized, Server crash)
-            const msg = e.response?.data?.message || 'Something Went Wrong';
-            dispatch(setError(msg));
-        }
+        const msg = e.response?.data?.message || 'Something Went Wrong';
+        dispatch(setError(msg));
     } finally {
         dispatch(setLoading(false))
     }
 }
 
-export const approveUser = async (userData, dispatch) => {
+export const approveUser = async (users, token, dispatch) => {
+    const userIds = users.map(user => user.id);
+
     try {
-        dispatch(setLoading(true))
-        const response = await axios.put(`${API_BASE_URL}user/approve-unauthenticated-user${userData.id}`,
-            {},
+        dispatch(setLoading(true));
+        
+        await axios.put(
+            `${API_BASE_URL}user/approve-unauthenticated-user/`,
+            { id: userIds }, 
             {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${userData.token}`
+                    'Authorization': `Bearer ${token}`
                 }
             }
-        )
+        );
 
-        if (response.data.role === 'teacher') {
-            dispatch(appendNewTeacher(response.data))
-            return
-        } else if (response.data.role === 'student') {
-            dispatch(appendNewStudent(response.data))
-            return
-        }
-        dispatch(setError('Something Went Wrong'))
+        users.forEach(user => {
+            const dataToAppend = user.originalData || user;
+            
+            if (user.type === 'teacher' || dataToAppend.role === 'teacher') {
+                dispatch(appendNewTeacher(dataToAppend));
+            } else {
+                dispatch(appendNewStudent(dataToAppend));
+            }
+        });
+
+        return true;
     } catch (e) {
         const msg = e.response?.data?.message || 'Something Went Wrong';
-        dispatch(setError(msg))
+        dispatch(setError(msg));
+        return false;
     } finally {
-        dispatch(setLoading(false))
+        dispatch(setLoading(false));
     }
-}
+};
 
+export const declineUser = async (users, token, dispatch) => {
+    const userIds = users.map(user => user.id);
+
+    try {
+        dispatch(setLoading(true));
+        
+        await axios.put(
+            `${API_BASE_URL}user/decline-unauthenticated-user/`,
+            { id: userIds }, 
+            {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
+        users.forEach(user => {
+            const role =  user.role || user.originalData?.role;
+            
+            if (role === 'teacher') {
+                dispatch(removeFromUnauthenticatedTeachers(user.id));
+            } else {
+                dispatch(removeFromUnauthenticatedStudents(user.id));
+            }
+        });
+
+        return true;
+    } catch (e) {
+        const msg = e.response?.data?.message || 'Something Went Wrong';
+        dispatch(setError(msg));
+        return false;
+    } finally {
+        dispatch(setLoading(false));
+    }
+};
 
 export const getAllCourses = async (token, dispatch) => {
     try {
@@ -313,4 +351,6 @@ export const addNewCourse = async (userData, dispatch) => {
         dispatch(setLoading(false))
     }
 }
+
+
 
