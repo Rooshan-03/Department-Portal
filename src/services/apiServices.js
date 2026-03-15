@@ -22,15 +22,28 @@ export const login = async (userData, dispatch, navigation) => {
         }
         );
         if (response.data) {
-            const dataToStore = Array.isArray(response.data) ? response.data[0] : response.data;
-            if (userData.role === 'teacher') {
+            // For students/teachers, data is in response.data.user
+            // For admins, data is in response.data.admin
+            let dataToStore;
+            if (userData.role === 'student') {
+                dataToStore = {
+                    ...response.data.user,
+                    access_token: response.data.access_token
+                };
+                dispatch(setStudentData(dataToStore))
+                navigation('/Student-Dashboard')
+            } else if (userData.role === 'teacher') {
+                dataToStore = {
+                    ...response.data.user,
+                    access_token: response.data.access_token
+                };
                 dispatch(setTeacherData(dataToStore))
                 navigation('/Teacher-Dashboard')
-            } else if (userData.role === 'student') {
-                dispatch(setStudentData(dataToStore));
-                navigation('/Student-Dashboard')
-            }
-            else {
+            } else {
+                dataToStore = {
+                    ...response.data.admin,
+                    access_token: response.data.access_token
+                };
                 dispatch(setAdminData(dataToStore));
                 navigation('/Admin-Dashboard')
                 console.log(dataToStore)
@@ -347,6 +360,101 @@ export const addNewCourse = async (userData, dispatch) => {
     } catch (e) {
         const msg = e.response?.data?.message || 'Something Went Wrong';
         dispatch(setError(msg))
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+
+// ==================== STUDENT API SERVICES ====================
+
+export const getAllCoursesForStudent = async (token, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        const response = await axios.get(`${API_BASE_URL}course/`, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        return response.data
+    } catch (e) {
+        const msg = e.response?.data?.message || 'Failed to load courses';
+        dispatch(setError(msg))
+        return []
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+
+export const getEnrolledCourses = async (studentId, token, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        const response = await axios.get(`${API_BASE_URL}course/get-student-courses/${studentId}/`, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        return response.data
+    } catch (e) {
+        const msg = e.response?.data?.message || 'Failed to load enrolled courses';
+        dispatch(setError(msg))
+        return []
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+
+export const enrollInCourse = async (courseId, studentId, token, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        const response = await axios.post(`${API_BASE_URL}course/enroll/` , {
+            course_id: courseId,
+            student_id: studentId
+        }, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        return { success: true, data: response.data }
+    } catch (e) {
+        const msg = e.response?.data?.detail || e.response?.data?.message || 'Failed to enroll in course';
+        dispatch(setError(msg))
+        return { success: false, error: msg }
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+
+export const updateStudentSettings = async (userData, token, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        const updateData = {
+            name: userData.name,
+            email: userData.email
+        };
+        
+        // Add password if provided
+        if (userData.newPassword) {
+            updateData.password = userData.newPassword;
+        }
+        
+        const response = await axios.put(`${API_BASE_URL}user/${userData.id}/`, updateData, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        return { success: true, data: response.data }
+    } catch (e) {
+        const msg = e.response?.data?.detail || 'Failed to update settings';
+        dispatch(setError(msg))
+        return { success: false, error: msg }
     } finally {
         dispatch(setLoading(false))
     }

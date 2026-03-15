@@ -9,8 +9,15 @@ lerna-debug.log*
 
 node_modules
 dist
-dist-ssr
+dist-srv
 *.local
+
+# Environment variables (sensitive - should never be committed)
+.env
+.env.local
+.env.production.local
+.env.development.local
+.env.test.local
 
 # Editor directories and files
 .vscode/*
@@ -23,5 +30,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Build outputs
+build
+coverage
 
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyb29zaGFuYWxpMTQ4QGdtYWlsLmNvbSIsImV4cCI6MTc3MTQ3OTQ3OX0.IpfIcckEelH4tkQGKUwJPtv-1Jk9Ri0THhQYOv53hNA
+# Cache
+.cache
+.parcel-cache
