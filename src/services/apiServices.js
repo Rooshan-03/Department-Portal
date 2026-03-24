@@ -10,14 +10,14 @@ const API_BASE_URL = 'http://153.92.208.33/smart-campus/'
 export const login = async (userData, dispatch, navigation) => {
     try {
         dispatch(setLoading(true));
-        const response = await axios.post(`${API_BASE_URL}auth/login/`, {
-            email: userData.email,
-            password: userData.password,
-            role: userData.role
-        }, {
+        const formData = new URLSearchParams();
+        formData.append('username', userData.email);
+        formData.append('password', userData.password);
+        
+        const response = await axios.post(`${API_BASE_URL}auth/login/`, formData, {
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
             }
         }
         );
@@ -459,6 +459,7 @@ export const updateStudentSettings = async (userData, token, dispatch) => {
         dispatch(setLoading(false))
     }
 }
+
 
 
 
