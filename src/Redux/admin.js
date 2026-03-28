@@ -9,6 +9,10 @@ const adminSlice = createSlice({
         studentsCount: null,
         allTeachers: [],
         teachersCount: null,
+        activeCoursesCount: null,
+        pendingComplaints: null,
+        recentUsers: null,
+        recentComplaints: [],
         unAuthenticatedTeachers: [],
         unAuthenticatedStudents: [],
         allCourses: [],
@@ -54,6 +58,26 @@ const adminSlice = createSlice({
             state.allTeachers = action.payload
             state.error = null;
             state.loading = false;
+        },
+        setActiveCoursesCount: (state, action) => {
+            state.activeCoursesCount = action.payload
+            state.error = null
+            state.loading = false
+        },
+        setPendingComplaints: (state, action) => {
+            state.pendingComplaints = action.payload
+            state.error = null
+            state.loading = false
+        },
+        setRecentUsers: (state, action) => {
+            state.recentUsers = action.payload
+            state.error = null
+            state.loading = false
+        },
+        setRecentComplaints: (state, action) => {
+            state.recentComplaints = action.payload
+            state.error = null
+            state.loading = false
         },
         appendNewTeacher: (state, action) => {
             state.allTeachers.push(action.payload);
@@ -103,5 +127,5 @@ const adminSlice = createSlice({
     }
 });
 
-export const { setAdminData, setLoading, setError, setSuccess, clearRecord, setAllTeachers, setAllStudents, removeFromUnauthenticatedStudents, removeFromUnauthenticatedTeachers, setAllUnAuthenticatedTeachers, setAllUnAuthenticatedStudents, appendNewStudent, appendNewTeacher, setAllCourses, appendCourse, setTeachersCount, setStudentsCount,clearMessages } = adminSlice.actions;
+export const { setAdminData, setLoading, setError, setSuccess, clearRecord, setAllTeachers, setAllStudents, removeFromUnauthenticatedStudents, removeFromUnauthenticatedTeachers, setAllUnAuthenticatedTeachers, setAllUnAuthenticatedStudents, appendNewStudent, appendNewTeacher, setAllCourses, appendCourse, setTeachersCount, setStudentsCount, clearMessages, setActiveCoursesCount, setPendingComplaints, setRecentUsers, setRecentComplaints} = adminSlice.actions;
 export default adminSlice.reducer;

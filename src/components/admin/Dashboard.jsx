@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { addNewCourse, getAllCourses, getAllTeachers } from '../../services/apiServices'
+import { addNewCourse, getAllCourses, getAllTeachers, loadDashboard } from '../../services/apiServices'
 import Loader from '../Loader'
 
 function Dashboard() {
@@ -15,6 +15,7 @@ function Dashboard() {
 
   useEffect(() => {
     getAllCourses(token, dispatch)
+    loadDashboard(token,dispatch)
     const fetchTeachers = async () => {
       await getAllTeachers(token, dispatch);
     };

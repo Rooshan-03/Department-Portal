@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import '../index.css';
 import department from '../assets/Department.png';
 import { FaGraduationCap } from 'react-icons/fa';

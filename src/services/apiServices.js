@@ -1,11 +1,16 @@
 import axios from 'axios';
-import { appendCourse, appendNewStudent, appendNewTeacher, setAllCourses, setAllStudents, setAllTeachers, setAllUnAuthenticatedStudents, setAllUnAuthenticatedTeachers, setAdminData, setError, setLoading, setSuccess, setStudentsCount, setTeachersCount, removeFromUnauthenticatedTeachers, removeFromUnauthenticatedStudents } from '../Redux/admin';
+import { appendCourse, appendNewStudent, appendNewTeacher, setAllCourses, setAllStudents, setAllTeachers, setAllUnAuthenticatedStudents, setAllUnAuthenticatedTeachers, setAdminData, setError, setLoading, setSuccess, setStudentsCount, setTeachersCount, removeFromUnauthenticatedTeachers, removeFromUnauthenticatedStudents, setActiveCoursesCount, setPendingComplaints, setRecentUsers } from '../Redux/admin';
 import { setStudentData } from '../Redux/student';
 import { setTeacherData } from '../Redux/teacher';
+import { data } from 'react-router-dom';
+import { storeData } from './Validation';
 
 // const API_BASE_URL = 'https://smart-campus-backenduoss.vercel.app/'
 // const API_BASE_URL = 'https://smart-campus-backend-orqg.onrender.com/'
 const API_BASE_URL = 'http://153.92.208.33/smart-campus/'
+
+
+//Login
 
 export const login = async (userData, dispatch, navigation) => {
     try {
@@ -13,7 +18,7 @@ export const login = async (userData, dispatch, navigation) => {
         const formData = new URLSearchParams();
         formData.append('username', userData.email);
         formData.append('password', userData.password);
-        
+
         const response = await axios.post(`${API_BASE_URL}auth/login/`, formData, {
             headers: {
                 'Accept': 'application/json',
@@ -60,6 +65,8 @@ export const login = async (userData, dispatch, navigation) => {
     }
 }
 
+// Registration
+
 
 export const register = async (userData, dispatch) => {
 
@@ -87,6 +94,32 @@ export const register = async (userData, dispatch) => {
         dispatch(setLoading(false));
     }
 };
+
+
+export const loadDashboard = async (token, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+
+        const response = await axios.get(`${API_BASE_URL}user/load-admin-dashboard/`, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        const data = response.data
+        storeData(data, dispatch)
+    } catch (e) {
+        const msg = e.response?.data?.message || 'Something Went Wrong';
+        dispatch(setError(msg))
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+
+
+// OTP 
+
 
 export const verifyOTP = async (userData, dispatch) => {
     try {
@@ -148,45 +181,8 @@ export const getAllStudents = async (token, dispatch) => {
         dispatch(setLoading(false))
     }
 }
-export const getStudentsCount = async (token, dispatch) => {
-    try {
-        dispatch(setLoading(true))
 
-        const response = await axios.get(`${API_BASE_URL}user/count-students/`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        dispatch(setStudentsCount(response.data))
-    } catch (e) {
-        const msg = e.response?.data?.message || 'Something Went Wrong';
-        dispatch(setError(msg))
-    } finally {
-        dispatch(setLoading(false))
-    }
-}
 
-export const getTeacherCount = async (token, dispatch) => {
-    try {
-        dispatch(setLoading(true))
-
-        const response = await axios.get(`${API_BASE_URL}user/count-teachers/`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        dispatch(setTeachersCount(response.data))
-    } catch (e) {
-        const msg = e.response?.data?.message || 'Something Went Wrong';
-        dispatch(setError(msg))
-    } finally {
-        dispatch(setLoading(false))
-    }
-}
 export const getAllTeachers = async (token, dispatch) => {
     try {
         dispatch(setLoading(true))
@@ -252,10 +248,10 @@ export const approveUser = async (users, token, dispatch) => {
 
     try {
         dispatch(setLoading(true));
-        
+
         await axios.put(
             `${API_BASE_URL}user/approve-unauthenticated-user/`,
-            { id: userIds }, 
+            { id: userIds },
             {
                 headers: {
                     'Accept': 'application/json',
@@ -267,7 +263,7 @@ export const approveUser = async (users, token, dispatch) => {
 
         users.forEach(user => {
             const dataToAppend = user.originalData || user;
-            
+
             if (user.type === 'teacher' || dataToAppend.role === 'teacher') {
                 dispatch(appendNewTeacher(dataToAppend));
             } else {
@@ -290,10 +286,10 @@ export const declineUser = async (users, token, dispatch) => {
 
     try {
         dispatch(setLoading(true));
-        
+
         await axios.put(
             `${API_BASE_URL}user/decline-unauthenticated-user/`,
-            { id: userIds }, 
+            { id: userIds },
             {
                 headers: {
                     'Accept': 'application/json',
@@ -304,8 +300,8 @@ export const declineUser = async (users, token, dispatch) => {
         );
 
         users.forEach(user => {
-            const role =  user.role || user.originalData?.role;
-            
+            const role = user.role || user.originalData?.role;
+
             if (role === 'teacher') {
                 dispatch(removeFromUnauthenticatedTeachers(user.id));
             } else {
@@ -410,7 +406,7 @@ export const getEnrolledCourses = async (studentId, token, dispatch) => {
 export const enrollInCourse = async (courseId, studentId, token, dispatch) => {
     try {
         dispatch(setLoading(true))
-        const response = await axios.post(`${API_BASE_URL}course/enroll/` , {
+        const response = await axios.post(`${API_BASE_URL}course/enroll/`, {
             course_id: courseId,
             student_id: studentId
         }, {
@@ -437,12 +433,12 @@ export const updateStudentSettings = async (userData, token, dispatch) => {
             name: userData.name,
             email: userData.email
         };
-        
+
         // Add password if provided
         if (userData.newPassword) {
             updateData.password = userData.newPassword;
         }
-        
+
         const response = await axios.put(`${API_BASE_URL}user/${userData.id}/`, updateData, {
             headers: {
                 'Accept': 'application/json',
