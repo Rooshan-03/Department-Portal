@@ -1,8 +1,7 @@
 import axios from 'axios';
-import { appendCourse, appendNewStudent, appendNewTeacher, setAllCourses, setAllStudents, setAllTeachers, setAllUnAuthenticatedStudents, setAllUnAuthenticatedTeachers, setAdminData, setError, setLoading, setSuccess, setStudentsCount, setTeachersCount, removeFromUnauthenticatedTeachers, removeFromUnauthenticatedStudents, setActiveCoursesCount, setPendingComplaints, setRecentUsers } from '../Redux/admin';
+import { appendCourse, appendNewStudent, appendNewTeacher, setAllCourses, setAllStudents, setAllTeachers, setAllUnAuthenticatedStudents, setAllUnAuthenticatedTeachers, setAdminData, setError, setLoading, setSuccess, setStudentsCount, setTeachersCount, removeFromUnauthenticatedTeachers, removeFromUnauthenticatedStudents } from '../Redux/admin';
 import { setStudentData } from '../Redux/student';
 import { setTeacherData } from '../Redux/teacher';
-import { data } from 'react-router-dom';
 import { storeData } from './Validation';
 
 // const API_BASE_URL = 'https://smart-campus-backenduoss.vercel.app/'
