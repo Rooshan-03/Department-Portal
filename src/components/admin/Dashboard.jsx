@@ -1,27 +1,60 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { addNewCourse, getAllCourses, getAllTeachers, loadDashboard } from '../../services/apiServices'
+import { addNewCourse, enrollStudent, getAllCourses, loadDashboard } from '../../services/apiServices'
 import Loader from '../Loader'
+import {
+  MdSecurity, MdOutlineLock, MdOutlineRemoveRedEye,
+  MdOutlinePersonAddAlt, MdOutlineMail, MdClose,
+  MdErrorOutline, MdOutlineArrowBack, MdOutlineVisibilityOff,
+  MdOutlineMarkEmailRead, MdCheckCircleOutline, MdPersonAdd,
+  MdMoreVert, MdPersonAdd as MdEnrollIcon
+} from 'react-icons/md';
+import { clearRecord, setError } from '../../Redux/admin';
+
+
 
 function Dashboard() {
   const token = useSelector((state) => state.admin.adminData.access_token)
   const Courses = useSelector((state) => state.admin.allCourses)
   const dispatch = useDispatch()
-  const { loading } = useSelector((state) => state.admin);
   const teachers = useSelector((state) => state.admin.allTeachers) || [];
+  const students = useSelector((state) => state.admin.allStudents) || [];
+  const unApprovedTeachers = useSelector((state) => state.admin.unAuthenticatedTeachers)
+  const unApprovedStudents = useSelector((state) => state.admin.unAuthenticatedStudents)
+
+  const [activeMenu, setActiveMenu] = useState(null);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', course_code: '', teacher_id: '' });
+  const { loading, error, success } = useSelector((state) => state.admin);
 
   useEffect(() => {
-    getAllCourses(token, dispatch)
-    loadDashboard(token,dispatch)
-    const fetchTeachers = async () => {
-      await getAllTeachers(token, dispatch);
-    };
+    if (error || success) {
+      console.log("TOKEN:", token)
+      const clearTimer = setTimeout(() => {
+        dispatch(clearRecord());
+      }, 4000);
+      return () => clearTimeout(clearTimer);
+    }
+  }, [error, success, dispatch]);
 
-    fetchTeachers();
-  }, [token, dispatch])
+  const getMessage = (msg) => {
+    if (typeof msg === 'object' && msg !== null) return msg.message || msg.detail || JSON.stringify(msg);
+    return msg;
+  };
+
+
+
+  useEffect(() => {
+
+
+    getAllCourses(token, dispatch);
+    loadDashboard(token, dispatch);
+
+  }, [token, dispatch]);
 
   const filteredCourses = Courses?.filter((course) => {
     const searchLower = searchTerm.toLowerCase();
@@ -31,6 +64,7 @@ function Dashboard() {
       course.teacher_name?.toLowerCase().includes(searchLower)
     );
   });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("New Course Data:", formData);
@@ -45,6 +79,23 @@ function Dashboard() {
     setFormData({ name: '', course_code: '', teacher_id: '' });
   };
 
+  if (loading || !token) {
+    return <Loader />
+  }
+  const enrollNewStudent = (student) => {
+    try {
+      const data = {
+        course_id: selectedCourse.id,
+        student_id: student.id,
+        token: token
+      }
+      enrollStudent(data, dispatch)
+      setShowEnrollModal(false)
+    } catch (error) {
+      dispatch(setError('Something Went Wrong'))
+    }
+  }
+
   return (
     <div className="bg-slate-50 min-h-screen p-8 text-slate-700">
       <div className="flex justify-between items-center mb-8">
@@ -58,9 +109,55 @@ function Dashboard() {
       </div>
 
 
-      {loading && (
-        <Loader />
-      )}
+      {/* error or success  */}
+      <div className="fixed top-6 right-1 z-[999] w-full max-w-sm pointer-events-none flex flex-col gap-3">
+        {error && (
+          <div className="bg-white border-l-4 border-red-500 rounded-xl shadow-2xl overflow-hidden pointer-events-auto animate-in slide-in-from-left duration-300">
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center">
+                <MdErrorOutline className="text-red-500 text-xl mr-3 flex-shrink-0" />
+                <p className="text-red-800 text-xs font-semibold leading-tight">
+                  {getMessage(error)}
+                </p>
+              </div>
+              <button
+                onClick={() => dispatch(clearRecord())}
+                className="ml-4 text-red-300 hover:text-red-600 transition-colors"
+              >
+                <MdClose size={18} />
+              </button>
+            </div>
+            {/* Error Progress Bar */}
+            <div className="h-1 bg-red-50 w-full">
+              <div className="h-full bg-red-500 animate-shrink"></div>
+            </div>
+          </div>
+        )}
+
+        {success && (
+          <div className="bg-white border-l-4 border-green-500 rounded-xl shadow-2xl overflow-hidden pointer-events-auto animate-in slide-in-from-left duration-300">
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center">
+                <MdCheckCircleOutline className="text-green-500 text-xl mr-3 flex-shrink-0" />
+                <p className="text-green-800 text-xs font-semibold leading-tight">
+                  {getMessage(success)}
+                </p>
+              </div>
+              <button
+                onClick={() => dispatch(clearRecord())}
+                className="ml-4 text-green-300 hover:text-green-600 transition-colors"
+              >
+                <MdClose size={18} />
+              </button>
+            </div>
+            {/* Success Progress Bar */}
+            <div className="h-1 bg-green-50 w-full">
+              <div className="h-full bg-green-500 animate-shrink"></div>
+            </div>
+          </div>
+        )}
+
+      </div>
 
 
       {isModalOpen && (
@@ -140,10 +237,118 @@ function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Enhanced Enroll Modal - Primary Design */}
+      {showEnrollModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop with blur */}
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-all duration-200"
+            onClick={() => setShowEnrollModal(false)}
+          ></div>
+
+          {/* Modal Container */}
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header with primary gradient */}
+            <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 p-2 rounded-xl">
+                    <MdPersonAdd className="text-white text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-lg">Enroll Student</h3>
+                    <p className="text-white/80 text-xs mt-0.5">
+                      Course: {selectedCourse?.name} ({selectedCourse?.course_code})
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowEnrollModal(false)}
+                  className="text-white/70 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                >
+                  <MdClose size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Student List Section */}
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="font-semibold text-slate-700 text-sm">Available Students</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Select a student to enroll in this course
+                  </p>
+                </div>
+                <div className="bg-slate-100 px-2.5 py-1 rounded-full">
+                  <span className="text-xs font-medium text-slate-600">{students.length} total</span>
+                </div>
+              </div>
+
+              {/* Student List Container */}
+              <div className="max-h-80 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                {students.length > 0 ? (
+                  students.map((student, idx) => (
+                    <div
+                      key={student.id}
+                      className="group flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:border-primary/30 hover:shadow-md transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Student Avatar */}
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center text-primary font-semibold text-sm">
+                          {student.name?.charAt(0).toUpperCase() || 'S'}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-700 text-sm">{student.name}</p>
+                          {student.email && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <MdOutlineMail className="text-slate-300 text-xs" />
+                              <p className="text-xs text-slate-400">{student.email}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          enrollNewStudent(student)
+                        }}
+                        className="bg-primary hover:bg-primary/90 text-white px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md active:scale-95"
+                      >
+                        <MdPersonAdd size={16} />
+                        Enroll
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 bg-slate-50 rounded-xl">
+                    <div className="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                      <MdOutlinePersonAddAlt className="text-slate-300 text-2xl" />
+                    </div>
+                    <p className="text-slate-400 text-sm">No students available</p>
+                    <p className="text-slate-300 text-xs mt-1">Add students to enroll them in courses</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-slate-100 px-6 py-4 bg-slate-50/50 flex justify-end">
+              <button
+                onClick={() => setShowEnrollModal(false)}
+                className="px-5 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard icon="📘" count={Courses?.length || 0} label="COURSES FOUND" color="blue" />
         <StatCard icon="👥" count={teachers?.length || 0} label="ASSIGNED FACULTY" color="green" />
-        <StatCard icon="📋" count="12" label="PENDING APPROVAL" color="orange" />
+        <StatCard icon="📋" count={unApprovedStudents?.length + unApprovedTeachers?.length || 0} label="PENDING APPROVAL" color="orange" />
       </div>
 
       {/* TABLE CONTAINER */}
@@ -206,7 +411,57 @@ function Dashboard() {
                     </span>
                   </td>
                   <td className="p-4">
-                    <button className="text-slate-400 hover:text-slate-600 font-bold">•••</button>
+                    <div className="relative">
+                      {/* Enhanced Three Dots Button */}
+                      <button
+                        onClick={() =>
+                          setActiveMenu(activeMenu === course.id ? null : course.id)
+                        }
+                        className="p-2 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      >
+                        <MdMoreVert size={20} />
+                      </button>
+
+                      {/* Enhanced Dropdown Menu */}
+                      {activeMenu === course.id && (
+                        <>
+                          {/* Backdrop for clicking outside */}
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setActiveMenu(null)}
+                          />
+                          <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.2)] border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 origin-top-right">
+                            {/* Menu Header */}
+                            <div className="px-3 py-2.5 bg-gradient-to-r from-primary/5 to-transparent border-b border-slate-100">
+                              <p className="text-[11px] font-semibold text-primary uppercase tracking-wider">Actions</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">Manage this course</p>
+                            </div>
+
+                            {/* Menu Items */}
+                            <button
+                              onClick={() => {
+                                setSelectedCourse(course);
+                                setShowEnrollModal(true);
+                                setActiveMenu(null);
+                              }}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:bg-primary/5 hover:text-primary transition-colors duration-150 group"
+                            >
+                              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                <MdEnrollIcon size={14} className="text-primary" />
+                              </div>
+                              <span className="font-medium">Enroll Student</span>
+                            </button>
+
+                            {/* Optional future menu items can be added here */}
+                            {/* 
+                            <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
+                              ...
+                            </button>
+                            */}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

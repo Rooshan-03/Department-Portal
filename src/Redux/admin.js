@@ -15,6 +15,7 @@ const adminSlice = createSlice({
         recentComplaints: [],
         unAuthenticatedTeachers: [],
         unAuthenticatedStudents: [],
+        allComplaints: [],
         allCourses: [],
         error: null,
         success: null,
@@ -89,17 +90,44 @@ const adminSlice = createSlice({
             state.loading = false;
             state.error = null;
         },
+        setAllComplaints: (state, action) => {
+            state.allComplaints = action.payload
+            state.loading = false;
+            state.error = null;
+        },
+        updateUserLocal: (state, action) => {
+            const { id } = action.payload;
+
+            // Check Students
+            const sIndex = state.allStudents.findIndex(s => s.id === id);
+            if (sIndex !== -1) {
+                state.allStudents[sIndex] = { ...state.allStudents[sIndex], ...action.payload };
+            }
+
+            // Check Teachers
+            const tIndex = state.allTeachers.findIndex(t => t.id === id);
+            if (tIndex !== -1) {
+                state.allTeachers[tIndex] = { ...state.allTeachers[tIndex], ...action.payload };
+            }
+
+            state.loading = false;
+        },
+
+        deleteUserLocal: (state, action) => {
+            const id = action.payload;
+            state.allStudents = state.allStudents.filter(s => s.id !== id);
+            state.allTeachers = state.allTeachers.filter(t => t.id !== id);
+            state.loading = false;
+        },
         appendCourse: (state, action) => {
             state.allCourses.push(action.payload);
             state.loading = false;
             state.error = null;
         },
         clearRecord: (state) => {
-            state.adminData = null;
             state.error = null;
             state.loading = false;
             state.success = null;
-            localStorage.removeItem('adminData');
         },
         clearMessages: (state) => {
             state.error = null;
@@ -127,5 +155,5 @@ const adminSlice = createSlice({
     }
 });
 
-export const { setAdminData, setLoading, setError, setSuccess, clearRecord, setAllTeachers, setAllStudents, removeFromUnauthenticatedStudents, removeFromUnauthenticatedTeachers, setAllUnAuthenticatedTeachers, setAllUnAuthenticatedStudents, appendNewStudent, appendNewTeacher, setAllCourses, appendCourse, setTeachersCount, setStudentsCount, clearMessages, setActiveCoursesCount, setPendingComplaints, setRecentUsers, setRecentComplaints} = adminSlice.actions;
+export const { setAdminData, setLoading, setError, setSuccess, clearRecord, setAllComplaints, setAllTeachers, updateUserLocal, deleteUserLocal, setAllStudents, removeFromUnauthenticatedStudents, removeFromUnauthenticatedTeachers, setAllUnAuthenticatedTeachers, setAllUnAuthenticatedStudents, appendNewStudent, appendNewTeacher, setAllCourses, appendCourse, setTeachersCount, setStudentsCount, clearMessages, setActiveCoursesCount, setPendingComplaints, setRecentUsers, setRecentComplaints } = adminSlice.actions;
 export default adminSlice.reducer;

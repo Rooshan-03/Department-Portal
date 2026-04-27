@@ -15,6 +15,7 @@ function StudentDashboard() {
 
   useEffect(() => {
     if (token && studentId) {
+      console.log(token)
       loadCourses();
     }
   }, [token, studentId]);

@@ -3,7 +3,8 @@
 @theme {
   /* This automatically creates classes like bg-primary, text-primary, border-primary */
   --color-primary: #1a365d;
-  --color-primary-hover: #2a4a7d;
+--color-primary-hover: #2a4a7d;
+--color-background: #f5f7fa;
   /* You can also define your Campus-specific colors */
   --color-campus-accent: #f59e0b;
   --color-campus-dark: #152c4d
@@ -167,4 +168,7 @@
   to {
     stroke-dashoffset: 0;
   }
+}
+.modal-overlay {
+    z-index: 9999 !important;
 }

@@ -1,13 +1,12 @@
 import axios from 'axios';
-import { appendCourse, appendNewStudent, appendNewTeacher, setAllCourses, setAllStudents, setAllTeachers, setAllUnAuthenticatedStudents, setAllUnAuthenticatedTeachers, setAdminData, setError, setLoading, setSuccess, setStudentsCount, setTeachersCount, removeFromUnauthenticatedTeachers, removeFromUnauthenticatedStudents } from '../Redux/admin';
+import { appendCourse, appendNewStudent, appendNewTeacher, setAllCourses, setAllStudents, setAllTeachers, setAllUnAuthenticatedStudents, setAllUnAuthenticatedTeachers, setAdminData, setError, setLoading, setSuccess, setStudentsCount, setTeachersCount, removeFromUnauthenticatedTeachers, removeFromUnauthenticatedStudents, updateUserLocal, deleteUserLocal, setAllComplaints } from '../Redux/admin';
 import { setStudentData } from '../Redux/student';
 import { setTeacherData } from '../Redux/teacher';
 import { storeData } from './Validation';
 
 // const API_BASE_URL = 'https://smart-campus-backenduoss.vercel.app/'
 // const API_BASE_URL = 'https://smart-campus-backend-orqg.onrender.com/'
-const API_BASE_URL = 'http://153.92.208.33/smart-campus/'
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 //Login
 
@@ -26,8 +25,6 @@ export const login = async (userData, dispatch, navigation) => {
         }
         );
         if (response.data) {
-            // For students/teachers, data is in response.data.user
-            // For admins, data is in response.data.admin
             let dataToStore;
             if (userData.role === 'student') {
                 dataToStore = {
@@ -42,6 +39,7 @@ export const login = async (userData, dispatch, navigation) => {
                     access_token: response.data.access_token
                 };
                 dispatch(setTeacherData(dataToStore))
+
                 navigation('/Teacher-Dashboard')
             } else {
                 dataToStore = {
@@ -49,6 +47,8 @@ export const login = async (userData, dispatch, navigation) => {
                     access_token: response.data.access_token
                 };
                 dispatch(setAdminData(dataToStore));
+                getAllCourses(response.data.access_token, dispatch);
+                loadDashboard(response.data.access_token, dispatch);
                 navigation('/Admin-Dashboard')
                 console.log(dataToStore)
             }
@@ -161,45 +161,10 @@ export const resendOTP = async (userData, dispatch) => {
     }
 }
 
-export const getAllStudents = async (token, dispatch) => {
-    try {
-        dispatch(setLoading(true))
-
-        const response = await axios.get(`${API_BASE_URL}user/all-students/`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        dispatch(setAllStudents(response.data))
-    } catch (e) {
-        const msg = e.response?.data?.message || 'Something Went Wrong';
-        dispatch(setError(msg))
-    } finally {
-        dispatch(setLoading(false))
-    }
-}
 
 
-export const getAllTeachers = async (token, dispatch) => {
-    try {
-        dispatch(setLoading(true))
-        const response = await axios.get(`${API_BASE_URL}user/all-teachers/`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        dispatch(setAllTeachers(response.data))
-    } catch (e) {
-        const msg = e.response?.data?.message || 'Something Went Wrong';
-        dispatch(setError(msg))
-    } finally {
-        dispatch(setLoading(false))
-    }
-}
+
+
 
 
 export const getAllUnauthenticatedTeachers = async (token, dispatch) => {
@@ -351,6 +316,7 @@ export const addNewCourse = async (userData, dispatch) => {
                 'Authorization': `Bearer ${userData.token}`
             }
         })
+        dispatch(setSuccess('Course Added Successfully'))
         dispatch(appendCourse(response.data))
     } catch (e) {
         const msg = e.response?.data?.message || 'Something Went Wrong';
@@ -359,6 +325,121 @@ export const addNewCourse = async (userData, dispatch) => {
         dispatch(setLoading(false))
     }
 }
+
+export const enrollStudent = async (userData, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        await axios.post(`${API_BASE_URL}course/enroll/`, {
+            student_id: userData.student_id,
+            course_id: userData.course_id
+        }, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userData.token}`
+            }
+        })
+        dispatch(setSuccess('Student Enrolled Successfully'))
+    } catch (error) {
+        dispatch(setError(error.message))
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+
+
+
+
+export const deleteUser = async (userData, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        await axios.delete(`${API_BASE_URL}user/${userData.id}/`, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userData.token}`
+            }
+        })
+        dispatch(deleteUserLocal(userData.id));
+        dispatch(setSuccess('User Deleted Successfully'))
+    } catch (error) {
+        dispatch(setError(error.message))
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+
+export const updateUser = async (userData, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        await axios.put(`${API_BASE_URL}user/${userData.id}/`, {
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+            is_active: userData.is_active,
+            is_authenticated: userData.is_authenticated,
+            is_verified_email: userData.is_verified_email
+        }, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userData.token}`
+            }
+        })
+        dispatch(updateUserLocal(userData));
+        dispatch(setSuccess('User Updated Successfully'))
+    } catch (error) {
+        dispatch(setError(error.message))
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+
+
+
+
+export const updateComplaintStatus = async (userData, dispatch) => {
+    try {
+        const response = await axios.patch(`${API_BASE_URL}complaint/${userData.complaintId}/status`, null, {
+            params: { status: userData.newStatus },
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userData.token}`
+            },
+        }
+        );
+        dispatch(setSuccess('Complaint Status Updated'))
+        console.log('Success:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating status:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
+
+export const getAllComplaints = async (token, dispatch) => {
+    try {
+        dispatch(setLoading(true))
+        const response = await axios.get(`${API_BASE_URL}complaint/`, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        dispatch(setAllComplaints(response.data))
+    } catch (e) {
+        const msg = e.response?.data?.message || 'Failed to get Complaints';
+        dispatch(setError(msg))
+        dispatch(setAllComplaints([]))
+    } finally {
+        dispatch(setLoading(false))
+    }
+}
+
+
 
 // ==================== STUDENT API SERVICES ====================
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, UserSquare2, CalendarDays, Settings, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare2, CalendarDays, Settings, Menu, X, MessageSquareWarning } from 'lucide-react';
 import { FaGraduationCap } from 'react-icons/fa'
 import Faculty from './Faculty';
 import Students from './Students';
@@ -8,6 +8,8 @@ import { useSelector } from 'react-redux';
 import NavBar from './NavBar';
 import Dashboard from './Dashboard';
 import AcceptRequest from './AcceptRequest';
+import Complaints from './Complaints';
+import { GoIssueClosed, GoIssueDraft, GoIssueOpened } from 'react-icons/go';
 
 const SideBar = () => {
   const [activeScreen, setActiveScreen] = useState('Dashboard');
@@ -22,8 +24,10 @@ const SideBar = () => {
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, section: 'HOME' },
     { name: 'Faculty', icon: <UserSquare2 size={20} />, section: 'ACADEMIC' },
     { name: 'Students', icon: <Users size={20} />, section: 'ACADEMIC' },
-    { name: 'Join Requests', icon: <CalendarDays size={20} />, section: 'Authorization' },
+    { name: 'Join Requests', icon: <CalendarDays size={20} />, section: 'AUTHORIZATION' },
+    { name: 'Complaints', icon: <MessageSquareWarning size={20} />, section: 'COMPLAINTS' },
     { name: 'Settings', icon: <Settings size={20} />, section: 'SYSTEM' },
+
   ];
 
   return (
@@ -94,6 +98,7 @@ const SideBar = () => {
               {activeScreen === 'Settings' && <SettingsScreen />}
               {activeScreen === 'Dashboard' && <Dashboard />}
               {activeScreen === 'Join Requests' && <AcceptRequest />}
+              {activeScreen === 'Complaints' && <Complaints />}
             </div>
           </div>
         </main>

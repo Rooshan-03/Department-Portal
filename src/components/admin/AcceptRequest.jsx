@@ -13,6 +13,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { approveUser, declineUser } from '../../services/apiServices';
 import { setSuccess, setError, clearMessages } from '../../Redux/admin';
+import { MdCheckCircleOutline, MdClose, MdErrorOutline } from 'react-icons/md';
 
 const StatsCardSkeleton = () => (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 animate-pulse">
@@ -61,7 +62,7 @@ const AcceptRequest = () => {
     const token = useSelector((state) => state.admin.adminData?.access_token || '');
     const students = useSelector((state) => state.admin.unAuthenticatedStudents || []);
     const teachers = useSelector((state) => state.admin.unAuthenticatedTeachers || []);
-    const {  success, error } = useSelector((state) => state.admin);
+    const { loading, error, success } = useSelector((state) => state.admin);
 
     const [pendingUsers, setPendingUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -78,13 +79,13 @@ const AcceptRequest = () => {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        if (success || error) {
-            const timer = setTimeout(() => {
-                dispatch(clearMessages());
-            }, 5000);
-            return () => clearTimeout(timer);
+        if (error || success) {
+            const clearTimer = setTimeout(() => {
+                dispatch(clearRecord());
+            }, 4000);
+            return () => clearTimeout(clearTimer);
         }
-    }, [success, error, dispatch]);
+    }, [error, success, dispatch]);
 
     useEffect(() => {
         const studentData = Array.isArray(students) ? students : [];
@@ -109,6 +110,13 @@ const AcceptRequest = () => {
         setPendingUsers([...formattedStudents, ...formattedTeachers]);
     }, [students, teachers]);
 
+
+    const getMessage = (msg) => {
+        if (typeof msg === 'object' && msg !== null) return msg.message || msg.detail || JSON.stringify(msg);
+        return msg;
+    };
+
+    
     const filteredUsers = pendingUsers.filter(user => {
         const matchesSearch = searchTerm === '' ||
             (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -248,101 +256,96 @@ const AcceptRequest = () => {
         teachers: pendingUsers.filter(u => u.type === 'teacher').length,
         students: pendingUsers.filter(u => u.type === 'student').length
     };
-const ConfirmationModal = () => {
-    if (!showConfirmModal) return null;
+    const ConfirmationModal = () => {
+        if (!showConfirmModal) return null;
 
-    const isApprove = confirmAction === 'approve';
-    const title = isBulkAction 
-        ? `${isApprove ? 'Approve' : 'Decline'} ${selectedUsers.length} Users`
-        : `${isApprove ? 'Approve' : 'Decline'} ${confirmUser?.name}`;
-    
-    const message = isBulkAction
-        ? `Are you sure you want to ${isApprove ? 'approve' : 'decline'} ${selectedUsers.length} selected ${selectedUsers.length === 1 ? 'user' : 'users'}?`
-        : `Are you sure you want to ${isApprove ? 'approve' : 'decline'} ${confirmUser?.name}?`;
+        const isApprove = confirmAction === 'approve';
+        const title = isBulkAction
+            ? `${isApprove ? 'Approve' : 'Decline'} ${selectedUsers.length} Users`
+            : `${isApprove ? 'Approve' : 'Decline'} ${confirmUser?.name}`;
 
-    return (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        const message = isBulkAction
+            ? `Are you sure you want to ${isApprove ? 'approve' : 'decline'} ${selectedUsers.length} selected ${selectedUsers.length === 1 ? 'user' : 'users'}?`
+            : `Are you sure you want to ${isApprove ? 'approve' : 'decline'} ${confirmUser?.name}?`;
 
-            <div className="fixed inset-0 bg-black/50 bg-opacity-50 transition-opacity" aria-hidden="true"></div>
-
+        return (
             <div className="fixed inset-0 z-50 overflow-y-auto">
-                <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                    <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-                    <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                        <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                            <div className="sm:flex sm:items-start">
-                                <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full sm:mx-0 sm:h-10 sm:w-10 ${
-                                    isApprove ? 'bg-blue-100' : 'bg-red-100'
-                                }`}>
-                                    {isApprove ? (
-                                        <CheckCircle className="h-6 w-6 text-blue-600" />
-                                    ) : (
-                                        <XCircle className="h-6 w-6 text-red-600" />
-                                    )}
-                                </div>
-                                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                                    <h3 className="text-lg leading-6 font-medium text-gray-900">
-                                        {title}
-                                    </h3>
-                                    <div className="mt-2">
-                                        <p className="text-sm text-gray-500">
-                                            {message}
-                                        </p>
-                                        {!isBulkAction && confirmUser && (
-                                            <div className="mt-3 flex items-center p-3 bg-gray-50 rounded-lg">
-                                                <div className={`h-8 w-8 rounded-full ${
-                                                    confirmUser.type === 'teacher' ? 'bg-blue-100' : 'bg-purple-100'
-                                                } flex items-center justify-center`}>
-                                                    <span className={`${
-                                                        confirmUser.type === 'teacher' ? 'text-blue-600' : 'text-purple-600'
-                                                    } font-medium text-xs`}>
-                                                        {getInitials(confirmUser.name)}
-                                                    </span>
-                                                </div>
-                                                <div className="ml-3">
-                                                    <p className="text-sm font-medium text-gray-900">{confirmUser.name}</p>
-                                                    <p className="text-xs text-gray-500">{confirmUser.email}</p>
-                                                </div>
-                                                <span className={`ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                                    confirmUser.type === 'teacher'
+                <div className="fixed inset-0 bg-black/50 bg-opacity-50 transition-opacity" aria-hidden="true"></div>
+
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                <div className="sm:flex sm:items-start">
+                                    <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full sm:mx-0 sm:h-10 sm:w-10 ${isApprove ? 'bg-blue-100' : 'bg-red-100'
+                                        }`}>
+                                        {isApprove ? (
+                                            <CheckCircle className="h-6 w-6 text-blue-600" />
+                                        ) : (
+                                            <XCircle className="h-6 w-6 text-red-600" />
+                                        )}
+                                    </div>
+                                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                        <h3 className="text-lg leading-6 font-medium text-gray-900">
+                                            {title}
+                                        </h3>
+                                        <div className="mt-2">
+                                            <p className="text-sm text-gray-500">
+                                                {message}
+                                            </p>
+                                            {!isBulkAction && confirmUser && (
+                                                <div className="mt-3 flex items-center p-3 bg-gray-50 rounded-lg">
+                                                    <div className={`h-8 w-8 rounded-full ${confirmUser.type === 'teacher' ? 'bg-blue-100' : 'bg-purple-100'
+                                                        } flex items-center justify-center`}>
+                                                        <span className={`${confirmUser.type === 'teacher' ? 'text-blue-600' : 'text-purple-600'
+                                                            } font-medium text-xs`}>
+                                                            {getInitials(confirmUser.name)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <p className="text-sm font-medium text-gray-900">{confirmUser.name}</p>
+                                                        <p className="text-xs text-gray-500">{confirmUser.email}</p>
+                                                    </div>
+                                                    <span className={`ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${confirmUser.type === 'teacher'
                                                         ? 'bg-blue-100 text-blue-800'
                                                         : 'bg-purple-100 text-purple-800'
-                                                }`}>
-                                                    {confirmUser.type === 'teacher' ? 'Teacher' : 'Student'}
-                                                </span>
-                                            </div>
-                                        )}
+                                                        }`}>
+                                                        {confirmUser.type === 'teacher' ? 'Teacher' : 'Student'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                            <button
-                                type="button"
-                                onClick={handleConfirm}
-                                className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white sm:ml-3 sm:w-auto sm:text-sm cursor-pointer ${
-                                    isApprove
+                            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                <button
+                                    type="button"
+                                    onClick={handleConfirm}
+                                    className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white sm:ml-3 sm:w-auto sm:text-sm cursor-pointer ${isApprove
                                         ? 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-500'
                                         : 'bg-red-500 hover:bg-red-600 focus:ring-red-500'
-                                } focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors`}
-                            >
-                                {isApprove ? 'Approve' : 'Decline'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={closeConfirmModal}
-                                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm cursor-pointer transition-colors"
-                            >
-                                Cancel
-                            </button>
+                                        } focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors`}
+                                >
+                                    {isApprove ? 'Approve' : 'Decline'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={closeConfirmModal}
+                                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm cursor-pointer transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    );
-};
+        );
+    };
 
     if (processingAction) {
         return (
@@ -429,40 +432,54 @@ const ConfirmationModal = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             <ConfirmationModal />
-
-            {success && (
-                <div className="fixed top-4 right-4 z-50 animate-slide-in">
-                    <div className="bg-green-50 border border-green-200 rounded-lg shadow-lg p-4 max-w-md">
-                        <div className="flex items-center">
-                            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                            <p className="ml-3 text-sm text-green-800 font-medium">{success}</p>
+            <div className="fixed top-6 right-1 z-[999] w-full max-w-sm pointer-events-none flex flex-col gap-3">
+                {error && (
+                    <div className="bg-white border-l-4 border-red-500 rounded-xl shadow-2xl overflow-hidden pointer-events-auto animate-in slide-in-from-left duration-300">
+                        <div className="flex items-center justify-between p-4">
+                            <div className="flex items-center">
+                                <MdErrorOutline className="text-red-500 text-xl mr-3 flex-shrink-0" />
+                                <p className="text-red-800 text-xs font-semibold leading-tight">
+                                    {getMessage(error)}
+                                </p>
+                            </div>
                             <button
-                                onClick={() => dispatch(clearMessages())}
-                                className="ml-auto pl-3 cursor-pointer"
+                                onClick={() => dispatch(clearRecord())}
+                                className="ml-4 text-red-300 hover:text-red-600 transition-colors"
                             >
-                                <XCircle className="w-4 h-4 text-green-600 hover:text-green-800" />
+                                <MdClose size={18} />
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {error && (
-                <div className="fixed top-4 right-4 z-50 animate-slide-in">
-                    <div className="bg-red-50 border border-red-200 rounded-lg shadow-lg p-4 max-w-md">
-                        <div className="flex items-center">
-                            <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                            <p className="ml-3 text-sm text-red-800 font-medium">{error}</p>
-                            <button
-                                onClick={() => dispatch(clearMessages())}
-                                className="ml-auto pl-3 cursor-pointer"
-                            >
-                                <XCircle className="w-4 h-4 text-red-600 hover:text-red-800" />
-                            </button>
+                        {/* Error Progress Bar */}
+                        <div className="h-1 bg-red-50 w-full">
+                            <div className="h-full bg-red-500 animate-shrink"></div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+
+                {success && (
+                    <div className="bg-white border-l-4 border-green-500 rounded-xl shadow-2xl overflow-hidden pointer-events-auto animate-in slide-in-from-left duration-300">
+                        <div className="flex items-center justify-between p-4">
+                            <div className="flex items-center">
+                                <MdCheckCircleOutline className="text-green-500 text-xl mr-3 flex-shrink-0" />
+                                <p className="text-green-800 text-xs font-semibold leading-tight">
+                                    {getMessage(success)}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => dispatch(clearRecord())}
+                                className="ml-4 text-green-300 hover:text-green-600 transition-colors"
+                            >
+                                <MdClose size={18} />
+                            </button>
+                        </div>
+                        {/* Success Progress Bar */}
+                        <div className="h-1 bg-green-50 w-full">
+                            <div className="h-full bg-green-500 animate-shrink"></div>
+                        </div>
+                    </div>
+                )}
+
+            </div>
 
             <div className="border-b border-gray-200">
                 <div className="px-4 sm:px-6 lg:px-8 py-6 mx-auto max-w-7xl">
@@ -713,8 +730,8 @@ const ConfirmationModal = () => {
                                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                         disabled={currentPage === 1}
                                         className={`px-3 py-1 text-sm border rounded-lg transition-colors cursor-pointer ${currentPage === 1
-                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
                                             }`}
                                     >
                                         Previous
@@ -724,8 +741,8 @@ const ConfirmationModal = () => {
                                             key={index + 1}
                                             onClick={() => setCurrentPage(index + 1)}
                                             className={`px-3 py-1 text-sm border rounded-lg transition-colors cursor-pointer ${currentPage === index + 1
-                                                    ? 'bg-blue-600 text-white border-blue-600'
-                                                    : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
                                                 }`}
                                         >
                                             {index + 1}
@@ -735,8 +752,8 @@ const ConfirmationModal = () => {
                                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                         disabled={currentPage === totalPages}
                                         className={`px-3 py-1 text-sm border rounded-lg transition-colors cursor-pointer ${currentPage === totalPages
-                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
                                             }`}
                                     >
                                         Next

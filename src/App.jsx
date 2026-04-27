@@ -23,6 +23,7 @@ const router = createBrowserRouter([
     path: "/Student-dashboard",
     element: <StudentSidebar />,
   }
+  
 ]);
 
 function App() {
